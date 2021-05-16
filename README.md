@@ -1,12 +1,11 @@
-# Goose Finance
+# WorldSwap - Dublin Edition
 
-https://goosedefi.com Feel free to read the code. More details coming soon.
+https://dublin.worldswap.finance Feel free to read the code. More details coming soon.
 
 ## Deployed Contracts / Hash
 
 ### BSCMAINNET
 
-- EggToken - https://bscscan.com/token/0xf952fc3ca7325cc27d15885d37117676d25bfda6
-- MasterChef - https://bscscan.com/address/0xe70E9185F5ea7Ba3C5d63705784D8563017f2E57
-- Timelock - https://bscscan.com/address/0x2Ef488DE034567e9B8D312928fD52812A242aB3A
-- MultiCall - https://bscscan.com/address/0x1ee38d535d541c55c9dae27b12edf090c608e6fb
+- DubToken - https://bscscan.com/address/0xc052568af1b80157d0640afb0df82712a98aa931
+- MasterChef - https://bscscan.com/address/0xE95eF3eda9a6e2eB1366f4bF27AF4DA292e8464C
+- Timelock - https://bscscan.com/address/0x8e5d6Afb332C51B9aAE1bBA10693713BDe2f2173
