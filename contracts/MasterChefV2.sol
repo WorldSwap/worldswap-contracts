@@ -5,6 +5,7 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./libs/IBEP20.sol";
 import "./libs/SafeBEP20.sol";
+import "./libs/IReferral.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
@@ -67,12 +68,18 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     // The block number when WS mining starts.
     uint256 public startBlock;
 
+    // Referral contract address.
+    IReferral public referral;
+    // Referral commission rate in basis points.
+    uint16 public referralCommissionRate = 200;
+
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event SetFeeAddress(address indexed user, address indexed newAddress);
     event SetDevAddress(address indexed user, address indexed newAddress);
     event UpdateEmissionRate(address indexed user, uint256 wsPerBlock);
+    event ReferralCommissionPaid(address indexed user, address indexed referrer, uint256 commissionAmount);
 
     constructor(
         DubToken _ws,
@@ -174,14 +181,20 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     }
 
     // Deposit LP tokens to MasterChef for WS allocation.
-    function deposit(uint256 _pid, uint256 _amount) public nonReentrant {
+    function deposit(uint256 _pid, uint256 _amount, address _referrer) public nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
+
+        if (_amount > 0 && address(referral) != address(0) && _referrer != address(0) && _referrer != msg.sender) {
+            referral.recordReferral(msg.sender, _referrer);
+        }
+
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(pool.accWsPerShare).div(1e12).sub(user.rewardDebt);
             if (pending > 0) {
                 safeWsTransfer(msg.sender, pending);
+                payReferralCommission(msg.sender, pending);
             }
         }
         if (_amount > 0) {
@@ -207,6 +220,7 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
         uint256 pending = user.amount.mul(pool.accWsPerShare).div(1e12).sub(user.rewardDebt);
         if (pending > 0) {
             safeWsTransfer(msg.sender, pending);
+            payReferralCommission(msg.sender, pending);
         }
         if (_amount > 0) {
             user.amount = user.amount.sub(_amount);
@@ -257,5 +271,28 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
         massUpdatePools();
         wsPerBlock = _wsPerBlock;
         emit UpdateEmissionRate(msg.sender, _wsPerBlock);
+    }
+
+    // Allows to update the referral contract.
+    function setReferral(IReferral _referral) public onlyOwner {
+        referral = _referral;
+    }
+
+    // Update Referral Commission Rate
+    function setReferralCommissionRate(uint16 _referralCommissionRate) public onlyOwner {
+        referralCommissionRate = _referralCommissionRate;
+    }
+
+    // Pay referral commission to the referrer who referred this user.
+    function payReferralCommission(address _user, uint256 _pending) internal {
+        if (address(referral) != address(0) && referralCommissionRate > 0) {
+            address referrer = referral.getReferrer(_user);
+            uint256 commissionAmount = _pending.mul(referralCommissionRate).div(10000);
+
+            if (referrer != address(0) && commissionAmount > 0) {
+                ws.mint(referrer, commissionAmount);
+                emit ReferralCommissionPaid(_user, referrer, commissionAmount);
+            }
+        }
     }
 }
