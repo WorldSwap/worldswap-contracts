@@ -10,10 +10,10 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "./DubToken.sol";
 
-// MasterChef is the master of Dub. He can make Dub and he is a fair guy.
+// MasterChef is the master of Ws. He can make Ws and he is a fair guy.
 //
 // Note that it's ownable and the owner wields tremendous power. The ownership
-// will be transferred to a governance smart contract once DUB is sufficiently
+// will be transferred to a governance smart contract once WS is sufficiently
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
@@ -26,13 +26,13 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
         uint256 amount;         // How many LP tokens the user has provided.
         uint256 rewardDebt;     // Reward debt. See explanation below.
         //
-        // We do some fancy math here. Basically, any point in time, the amount of DUBs
+        // We do some fancy math here. Basically, any point in time, the amount of WSs
         // entitled to a user but is pending to be distributed is:
         //
-        //   pending reward = (user.amount * pool.accDubPerShare) - user.rewardDebt
+        //   pending reward = (user.amount * pool.accWsPerShare) - user.rewardDebt
         //
         // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-        //   1. The pool's `accDubPerShare` (and `lastRewardBlock`) gets updated.
+        //   1. The pool's `accWsPerShare` (and `lastRewardBlock`) gets updated.
         //   2. User receives the pending reward sent to his/her address.
         //   3. User's `amount` gets updated.
         //   4. User's `rewardDebt` gets updated.
@@ -41,19 +41,19 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     // Info of each pool.
     struct PoolInfo {
         IBEP20 lpToken;           // Address of LP token contract.
-        uint256 allocPoint;       // How many allocation points assigned to this pool. DUBs to distribute per block.
-        uint256 lastRewardBlock;  // Last block number that DUBs distribution occurs.
-        uint256 accDubPerShare;   // Accumulated DUBs per share, times 1e12. See below.
+        uint256 allocPoint;       // How many allocation points assigned to this pool. WSs to distribute per block.
+        uint256 lastRewardBlock;  // Last block number that WSs distribution occurs.
+        uint256 accWsPerShare;   // Accumulated WSs per share, times 1e12. See below.
         uint16 depositFeeBP;      // Deposit fee in basis points
     }
 
-    // The DUB TOKEN!
-    DubToken public dub;
+    // The WS TOKEN!
+    DubToken public ws;
     // Dev address.
     address public devaddr;
-    // DUB tokens created per block.
-    uint256 public dubPerBlock;
-    // Bonus muliplier for early dub makers.
+    // WS tokens created per block.
+    uint256 public wsPerBlock;
+    // Bonus muliplier for early ws makers.
     uint256 public constant BONUS_MULTIPLIER = 1;
     // Deposit Fee address
     address public feeAddress;
@@ -64,7 +64,7 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
-    // The block number when DUB mining starts.
+    // The block number when WS mining starts.
     uint256 public startBlock;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
@@ -72,19 +72,19 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event SetFeeAddress(address indexed user, address indexed newAddress);
     event SetDevAddress(address indexed user, address indexed newAddress);
-    event UpdateEmissionRate(address indexed user, uint256 dubPerBlock);
+    event UpdateEmissionRate(address indexed user, uint256 wsPerBlock);
 
     constructor(
-        DubToken _dub,
+        DubToken _ws,
         address _devaddr,
         address _feeAddress,
-        uint256 _dubPerBlock,
+        uint256 _wsPerBlock,
         uint256 _startBlock
     ) public {
-        dub = _dub;
+        ws = _ws;
         devaddr = _devaddr;
         feeAddress = _feeAddress;
-        dubPerBlock = _dubPerBlock;
+        wsPerBlock = _wsPerBlock;
         startBlock = _startBlock;
     }
 
@@ -111,12 +111,12 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
         lpToken : _lpToken,
         allocPoint : _allocPoint,
         lastRewardBlock : lastRewardBlock,
-        accDubPerShare : 0,
+        accWsPerShare : 0,
         depositFeeBP : _depositFeeBP
         }));
     }
 
-    // Update the given pool's DUB allocation point and deposit fee. Can only be called by the owner.
+    // Update the given pool's WS allocation point and deposit fee. Can only be called by the owner.
     function set(uint256 _pid, uint256 _allocPoint, uint16 _depositFeeBP, bool _withUpdate) public onlyOwner {
         require(_depositFeeBP <= 399, "set: invalid deposit fee basis points");
         if (_withUpdate) {
@@ -132,18 +132,18 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
         return _to.sub(_from).mul(BONUS_MULTIPLIER);
     }
 
-    // View function to see pending DUBs on frontend.
-    function pendingDub(uint256 _pid, address _user) external view returns (uint256) {
+    // View function to see pending WSs on frontend.
+    function pendingWs(uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
-        uint256 accDubPerShare = pool.accDubPerShare;
+        uint256 accWsPerShare = pool.accWsPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 dubReward = multiplier.mul(dubPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accDubPerShare = accDubPerShare.add(dubReward.mul(1e12).div(lpSupply));
+            uint256 wsReward = multiplier.mul(wsPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+            accWsPerShare = accWsPerShare.add(wsReward.mul(1e12).div(lpSupply));
         }
-        return user.amount.mul(accDubPerShare).div(1e12).sub(user.rewardDebt);
+        return user.amount.mul(accWsPerShare).div(1e12).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -166,22 +166,22 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
             return;
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 dubReward = multiplier.mul(dubPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        dub.mint(devaddr, dubReward.div(10));
-        dub.mint(address(this), dubReward);
-        pool.accDubPerShare = pool.accDubPerShare.add(dubReward.mul(1e12).div(lpSupply));
+        uint256 wsReward = multiplier.mul(wsPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        ws.mint(devaddr, wsReward.div(10));
+        ws.mint(address(this), wsReward);
+        pool.accWsPerShare = pool.accWsPerShare.add(wsReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
 
-    // Deposit LP tokens to MasterChef for DUB allocation.
+    // Deposit LP tokens to MasterChef for WS allocation.
     function deposit(uint256 _pid, uint256 _amount) public nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accDubPerShare).div(1e12).sub(user.rewardDebt);
+            uint256 pending = user.amount.mul(pool.accWsPerShare).div(1e12).sub(user.rewardDebt);
             if (pending > 0) {
-                safeDubTransfer(msg.sender, pending);
+                safeWsTransfer(msg.sender, pending);
             }
         }
         if (_amount > 0) {
@@ -194,7 +194,7 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
                 user.amount = user.amount.add(_amount);
             }
         }
-        user.rewardDebt = user.amount.mul(pool.accDubPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accWsPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
@@ -204,15 +204,15 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
-        uint256 pending = user.amount.mul(pool.accDubPerShare).div(1e12).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(pool.accWsPerShare).div(1e12).sub(user.rewardDebt);
         if (pending > 0) {
-            safeDubTransfer(msg.sender, pending);
+            safeWsTransfer(msg.sender, pending);
         }
         if (_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accDubPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accWsPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -227,16 +227,16 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
         emit EmergencyWithdraw(msg.sender, _pid, amount);
     }
 
-    // Safe dub transfer function, just in case if rounding error causes pool to not have enough DUBs.
-    function safeDubTransfer(address _to, uint256 _amount) internal {
-        uint256 dubBal = dub.balanceOf(address(this));
+    // Safe ws transfer function, just in case if rounding error causes pool to not have enough WSs.
+    function safeWsTransfer(address _to, uint256 _amount) internal {
+        uint256 wsBal = ws.balanceOf(address(this));
         bool transferSuccess = false;
-        if (_amount > dubBal) {
-            transferSuccess = dub.transfer(_to, dubBal);
+        if (_amount > wsBal) {
+            transferSuccess = ws.transfer(_to, wsBal);
         } else {
-            transferSuccess = dub.transfer(_to, _amount);
+            transferSuccess = ws.transfer(_to, _amount);
         }
-        require(transferSuccess, "safeDubTransfer: transfer failed");
+        require(transferSuccess, "safeWsTransfer: transfer failed");
     }
 
     // Update dev address by the previous dev.
@@ -253,9 +253,9 @@ contract MasterChefV2 is Ownable, ReentrancyGuard {
     }
 
     //Pancake has to add hidden dummy pools inorder to alter the emission, here we make it simple and transparent to all.
-    function updateEmissionRate(uint256 _dubPerBlock) public onlyOwner {
+    function updateEmissionRate(uint256 _wsPerBlock) public onlyOwner {
         massUpdatePools();
-        dubPerBlock = _dubPerBlock;
-        emit UpdateEmissionRate(msg.sender, _dubPerBlock);
+        wsPerBlock = _wsPerBlock;
+        emit UpdateEmissionRate(msg.sender, _wsPerBlock);
     }
 }
