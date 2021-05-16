@@ -1,6 +1,6 @@
-# WorldSwap - Dublin Edition
+# WorldSwap
 
-https://dublin.worldswap.finance Feel free to read the code. More details coming soon.
+https://worldswap.finance Feel free to read the code. More details coming soon.
 
 ## Deployed Contracts / Hash
 
